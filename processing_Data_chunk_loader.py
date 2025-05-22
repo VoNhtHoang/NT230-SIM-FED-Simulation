@@ -12,12 +12,24 @@ normalizer = Normalizer()
 
 # Cấu hình
 chunk_size = 1000000
-input_file = "C:/Users/hoang/FileCSV_DACN_2025/bigTemp.csv"
-output_file = "C:/Users/hoang/FileCSV_DACN_2025/IoT23.csv"
+input_files = ["/mnt/c/Users/hoang/FileCSV_DACN_2025/bigTemp.csv","C:\\Users\\hoang\\FileCSV_DACN_2025\\bigTemp.csv"]
+output_files = ["/mnt/c/Users/hoang/FileCSV_DACN_2025/IoT23.csv", "C:\\Users\\hoang\\FileCSV_DACN_2025\\IoT23.csv"]
+
+input_file = ""
+output_file =""
+############## CHeck os #############
+os_type = os.name
+print(os_type)
+if os_type == "nt":
+    input_file = input_files[1]
+    output_file = output_files[1]
+else:
+    input_file = input_files[0]
+    output_file = output_files[0]
 
 cols_to_drop = ['uid', 'ts', 'tunnel_parents', 'local_orig', 'local_resp']
 ip_to_float_Cols = ['id.orig_h', 'id.resp_h']
-str_to_float_Cols = ['conn_state', 'history', 'conn_state','id.resp_p', 'id.orig_p']
+str_to_float_Cols = ['conn_state', 'history', 'id.orig_p', 'id.resp_p']
 numeric_cols = ['duration', 'orig_bytes', 'resp_bytes', 'missed_bytes', 'orig_pkts', 'orig_ip_bytes', 'resp_pkts', 'resp_ip_bytes']
 onehot_cols = ['proto', 'service']
 
@@ -44,7 +56,7 @@ proto_categories =set()
 service_categories = set()
 
 for index, chunk in enumerate(pd.read_csv(input_file, chunksize=chunk_size, dtype='str')):
-    chunk.replace({"(empty)": '0', "-": '0', "":'0'}, inplace=True)
+    chunk.replace({"(empty)": '0', "-": '0', "":'0', r'[N|n][a|A][N|n]':'0', 'unknown':'0'}, inplace=True)
     chunk.drop(columns=cols_to_drop, inplace=True, errors='ignore')
     chunk.drop_duplicates(inplace=True)
     
@@ -57,7 +69,7 @@ for index, chunk in enumerate(pd.read_csv(input_file, chunksize=chunk_size, dtyp
     service_categories.update(chunk['service'].unique())
     
     print(index)
-    
+
 proto_categories = sorted(proto_categories)
 service_categories = sorted(service_categories)
 
@@ -68,8 +80,6 @@ for index, chunk in enumerate(pd.read_csv(input_file, chunksize=chunk_size, dtyp
     chunk.drop_duplicates(inplace=True)
     
     chunk['label'] = chunk['label'].map(label_mapping).fillna(-1).astype("int32")
-
-    chunk.fillna(0)
 
     for col in ip_to_float_Cols:
         chunk[col] = chunk[col].apply(ip_to_float).astype("float32")
@@ -83,14 +93,19 @@ for index, chunk in enumerate(pd.read_csv(input_file, chunksize=chunk_size, dtyp
     
     chunk = pd.get_dummies(chunk, columns = onehot_cols, prefix = onehot_cols, dtype='int32')
 
-    chunk.drop(columns=[c for c in chunk.columns if 'service_-' or 'service_0' or 'proto_-' in c], errors='ignore', inplace=True)
-    ################ Scaler    
+    chunk.drop(columns=[c for c in chunk.columns if ('service_-' in c or 'service_0' in c or 'proto_-' in c or 'proto_0' in c)], errors='ignore', inplace=True)
+    ################ Scaler ###########################
+    # print(chunk.head())
     scaled = scaler.transform(chunk[numeric_cols])
-    normalized = normalizer.transform(scaled)
-    del scaled
-    chunk[numeric_cols] = pd.DataFrame(normalized, columns=numeric_cols)
-    del normalized
+    # normalized = normalizer.transform(scaled)
+    # del scaled
+    chunk[numeric_cols] = pd.DataFrame(scaled, columns=numeric_cols)
+    del scaled #del normalized
+    
+    chunk = chunk.fillna(0)
+    # chunk = chunk.fillna(inplace=True)
+    # print(chunk['duration'].value_counts())
     
     chunk.to_csv(output_file, mode='w' if first_chunk else 'a', header=first_chunk, index=False)
     first_chunk = False
-    print(f"Index: {index} Chunktail: {chunk.tail()}")
+    print(f"Index: {index}") #Chunktail: {chunk.tail()}
