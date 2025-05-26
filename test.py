@@ -1,33 +1,33 @@
-import csv
-import re
-import dask.dataframe as dd
+# import csv
+# import re
+# import dask.dataframe as dd
 
-df = dd.r
-input_file = filesPath[0]
-output_file = '/mnt/c/Users/hoang/FileCSV_DACN_2025/opt/log_1.csv'
-with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
-    writer = None
-    for line in infile:
-        line = line.strip()
-        if not line or line.startswith('#'):
-            # Lấy tiêu đề từ dòng "#fields"
-            if line.startswith("#fields"):
-                headers = re.split(r'[\t ]+', line)[1:]  # Bỏ '#fields'
-                writer = csv.writer(outfile)
-                writer.writerow(headers)
-            continue
-        # Tách dòng dữ liệu theo tab
-        fields =re.split(r'[\t ]+', line)
-        print(fields)
-        # Xử lý giá trị đặc 
-        # for f in fields:
-        #     if f 
-        # fields = ["" if f == "(empty)" else None if f == "-" else f for f in fields]
+# df = dd.r
+# input_file = filesPath[0]
+# output_file = '/mnt/c/Users/hoang/FileCSV_DACN_2025/opt/log_1.csv'
+# with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
+#     writer = None
+#     for line in infile:
+#         line = line.strip()
+#         if not line or line.startswith('#'):
+#             # Lấy tiêu đề từ dòng "#fields"
+#             if line.startswith("#fields"):
+#                 headers = re.split(r'[\t ]+', line)[1:]  # Bỏ '#fields'
+#                 writer = csv.writer(outfile)
+#                 writer.writerow(headers)
+#             continue
+#         # Tách dòng dữ liệu theo tab
+#         fields =re.split(r'[\t ]+', line)
+#         print(fields)
+#         # Xử lý giá trị đặc 
+#         # for f in fields:
+#         #     if f 
+#         # fields = ["" if f == "(empty)" else None if f == "-" else f for f in fields]
 
-        # Ghi ra file CSV
-        d
+#         # Ghi ra file CSV
+#         d
 
-print(f'Đã chuyển đổi {input_file} thành {output_file}')
+# print(f'Đã chuyển đổi {input_file} thành {output_file}')
 
 # # 1. Lấy header từ dòng "#fields"
 # fields = []
@@ -78,3 +78,8 @@ print(f'Đã chuyển đổi {input_file} thành {output_file}')
 # df.to_csv(output_file, index=False)
 
 # 1. Lấy header từ dòng "#fields"
+
+
+arr = [None, 1, 0, None]
+if arr[0] is None:
+    print(True)
