@@ -18,3 +18,74 @@ merged_data = pd.merge(data1, data2, on='customer_id', how='inner')
 
 print(merged_data)
 
+
+
+1. Dữ liệu nằm trong nhiều file .npy/.csv nhỏ
+
+Bạn nên chia nhỏ dữ liệu thành nhiều file (ví dụ mỗi file chứa một sample hoặc một batch), sau đó dùng tf.data.Dataset.list_files + Dataset.interleave/map để xử lý từng file khi cần:
+
+import tensorflow as tf
+import numpy as np
+
+# Danh sách file
+file_pattern = "data/*.npy"
+file_paths = tf.data.Dataset.list_files(file_pattern)
+
+# Hàm load từng file
+def load_npy(file_path):
+    data = tf.numpy_function(np.load, [file_path], tf.float32)
+    data.set_shape([128])  # hoặc [batch_size, feature_dim] nếu mỗi file là 1 batch
+    return data
+
+# Dataset stream từng file, load song song
+dataset = file_paths.map(load_npy, num_parallel_calls=tf.data.AUTOTUNE)
+
+# Nếu mỗi file là 1 sample:
+dataset = dataset.batch(64)
+
+# Nếu mỗi file đã chứa 1 batch sẵn:
+# dataset = dataset.flat_map(lambda x: tf.data.Dataset.from_tensor_slices(x))
+
+# Prefetch để load song song với GPU
+dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+2. Dữ liệu nằm trong một file .csv rất lớn
+
+Với .csv rất lớn, bạn có thể dùng:
+
+dataset = tf.data.experimental.make_csv_dataset(
+    "large_dataset.csv",
+    batch_size=64,
+    num_epochs=1,
+    shuffle=True,
+    num_parallel_reads=tf.data.AUTOTUNE,
+    prefetch_buffer_size=tf.data.AUTOTUNE
+)
+
+    Lưu ý: make_csv_dataset() stream từng dòng từ đĩa, không load hết vào RAM.
+
+3. Dữ liệu trong TFRecord (gợi ý tốt nhất cho dữ liệu lớn)
+
+Nếu bạn có thể chuyển dữ liệu sang TFRecord (dạng nhị phân tối ưu của TensorFlow), bạn sẽ đạt hiệu suất rất cao:
+
+raw_dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=tf.data.AUTOTUNE)
+
+def parse_fn(record):
+    features = {
+        'signal': tf.io.FixedLenFeature([128], tf.float32),
+        'label': tf.io.FixedLenFeature([], tf.int64)
+    }
+    parsed = tf.io.parse_single_example(record, features)
+    return parsed['signal'], parsed['label']
+
+dataset = raw_dataset.map(parse_fn, num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.shuffle(10000).batch(64).prefetch(tf.data.AUTOTUNE)
+
+    Nếu bạn cần, mình có thể giúp bạn viết đoạn code convert .npy hoặc .csv sang .tfrecord.
+
+✅ Tổng kết pipeline lý tưởng
+Thành phần	Mục tiêu
+.list_files()	Load file từng cái khi cần
+.map(..., num_parallel_calls=AUTO)	Xử lý song song CPU
+.batch()	Gom thành batch
+.prefetch(AUTO)	Load trước batch tiếp theo trong lúc GPU train

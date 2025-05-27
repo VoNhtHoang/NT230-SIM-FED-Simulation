@@ -30,7 +30,7 @@ else:
 cols_to_drop = []
 # ip_to_float_Cols = ['id.orig_h', 'id.resp_h']
 # str_to_float_Cols = ['conn_state', 'history', 'id.orig_p', 'id.resp_p']
-numeric_cols = ['MI_dir_5_mean', 'MI_dir_5_std', 'MI_dir_3_weight', 'MI_dir_3_mean', 'MI_dir_3']
+numeric_cols = ['MI_dir_5_mean', 'MI_dir_5_std', 'MI_dir_3_weight', 'MI_dir_3_mean', 'MI_dir_3', ]
 # onehot_cols = ['proto', 'service']
 label_mapping={}
 labels = ['benign', "torii", "mirai_spread", 'bashlite_spread', "mirai_c2", 'bashlite_c2']
