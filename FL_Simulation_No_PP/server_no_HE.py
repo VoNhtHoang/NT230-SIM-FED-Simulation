@@ -2,12 +2,11 @@ import sys
 sys.path.append('..')
 
 import numpy as np
+import gc
 from datetime import datetime, timedelta
 import multiprocessing
 from multiprocessing.pool import ThreadPool
-
-# Giả lập module dp_mechanisms (thay bằng module thực tế của bạn)
-from dp_mechanisms import laplace
+import tensorflow as tf
 
 num_iterations = 4
 LATENCY_DICT = {}
@@ -107,7 +106,10 @@ class Server:
 
             # Tính trung bình trọng số
             self.global_weights[iteration], self.global_biases[iteration] = self.average_params(calling_returned_messages)
-
+            
+            del calling_returned_messages
+            gc.collect()
+            
             end_call_time = datetime.now()
             server_logic_time = end_call_time - start_call_time
             simulated_time += server_logic_time
@@ -136,6 +138,9 @@ class Server:
                     converged_clients[message.sender] = iteration
                     removing_clients.add(message.sender)
 
+            del returned_messages
+            gc.collect()
+            
             end_return_time = datetime.now()
             server_logic_time = end_return_time - start_return_time
             simulated_time += server_logic_time
@@ -154,11 +159,14 @@ class Server:
                             'simulated_time': simulated_time + LATENCY_DICT[self.server_name][client_name]}
                     msg = Message(sender_name=self.server_name, recipient_name=client_name, body=body)
                     arguments.append((clientObject, msg))
-                __ = calling_removing_pool.map(client_drop_caller, arguments)
-
+                calling_removing_pool.map(client_drop_caller, arguments)
+                
             if iteration > 1:
                 del self.global_weights[iteration-1] 
                 del self.global_biases[iteration-1]
+            
+            tf.keras.backend.clear_session()
+            gc.collect()
             print("====================================== Kết thúc Iteration " + str(iteration) + " ======================================")
 
         print(converged_clients)
